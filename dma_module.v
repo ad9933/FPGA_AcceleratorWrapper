@@ -60,7 +60,7 @@ module dma_module #(
 	output	[3:0]	m_axi_acp_awqos,
 	output	[4:0]	m_axi_acp_awuser,
 	output			m_axi_acp_awvalid,
-	input			m_axi_acp_awready
+	input			m_axi_acp_awready,
 	
 	
 	//write data channel
@@ -94,7 +94,7 @@ module dma_module #(
 	
 	
 	
-)
+);
 
 
 	//Number of transaction need to get data
