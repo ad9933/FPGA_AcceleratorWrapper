@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module ();
+module bram_fifo_tb ();
 
 	reg             clk = 0;
 	reg             resetn;
@@ -25,9 +25,16 @@ module ();
 		.ms_valid(ms_valid),
 		.ms_ready(ms_ready)
 	);
+	
+	initial begin
+		resetn = 0;
+		#30;
+		resetn = 1;
+	end
+	
 
 	always begin
-		#3 clk = ~clk;
+		#6 clk = ~clk;
 	end
 
 	always @(posedge clk) begin
@@ -38,7 +45,7 @@ module ();
 
 	always @(posedge clk) begin
 		if(ss_valid && ss_ready) begin
-			ss_data = ss_data + 1;
+			#1 ss_data = ss_data + 1;
 		end
 	end
 

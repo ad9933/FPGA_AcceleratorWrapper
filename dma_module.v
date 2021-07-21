@@ -1,12 +1,12 @@
 module dma_module #(
 	//Data size which DMA is trying to receive in byte / bus width
-	parameter DATA_SIZE = 1280*720*3 / 8;
+	parameter DATA_SIZE = 1280 * 720 * 3 / 8,
 	
 	//log2(DATA_SIZE / bus width)
-	parameter DATA_SIZE_LOG = 19;
+	parameter DATA_SIZE_LOG = 19,
 	
 	//Burst per transaction
-	parameter BURST_SIZE = 16;
+	parameter BURST_SIZE = 16
 	
 	
 	

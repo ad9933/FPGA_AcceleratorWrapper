@@ -24,7 +24,7 @@ reg		[1:0]					ready_reg;
 
 
 //BRAM instance
-dp_bram(
+dp_bram BRAM (
 	.clk(clk),
 
 	.addr1(current),
@@ -39,7 +39,7 @@ dp_bram(
 );
 
 always @(*) begin
-	ss_ready = (data_num != 511) ? 0 : 1;
+	ss_ready = (data_num != 511) ? 1 : 0;
 	
 end
 
