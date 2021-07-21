@@ -12,13 +12,15 @@ module bram_fifo #(
 	output	reg 				ss_ready,
 
 	output		[WIDTH-1:0]		ms_data,
-	output	reg					ms_valid,
+	output						ms_valid,
 	input 						ms_ready
 
 );
 
 reg		[LOG_DEPTH-1:0]			data_num;
 reg		[LOG_DEPTH-1:0]			current;
+
+reg		[1:0]					ready_reg;
 
 
 //BRAM instance
@@ -27,11 +29,11 @@ dp_bram(
 
 	.addr1(current),
 	.rdata1(),
-	.wdata1({8'b0000_0000, ss_data}),
+	.wdata1(ss_data),
 	.write_en1(ss_ready && ss_valid),
 
-	.addr2(),
-	.rdata2(),
+	.addr2(current - data_num),
+	.rdata2(ms_data),
 	.wdata2(),
 	.write_en2(1'b0)
 );
@@ -51,15 +53,27 @@ assign writeonly = (ss_ready && ss_valid) && ~(ms_ready && ms_valid);
 assign readandwrite = (ss_ready && ss_valid) && (ms_ready && ms_valid);
 assign writeonly = ~(ss_ready && ss_valid) && (ms_ready && ms_valid);
 
+assign ms_valid = ready_reg[1];
+
+
 
 always @(posedge clk) begin
 	if(~resetn) begin
-		ms_valid <= 0;
+		ready_reg <= 0;
 	end
 	else begin
-		
+		if(ss_ready && ss_valid) begin
+			ready_reg[0] <= 1;
+		end
+		else begin
+			ready_reg[0] <= 0;
+		end
+
+		ready_reg[1] <= ready_reg[0];
 	end
 end
+
+
 
 always @(posedge clk) begin
 	if(~resetn) begin
