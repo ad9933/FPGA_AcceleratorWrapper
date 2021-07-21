@@ -20,6 +20,8 @@ module bram_fifo #(
 reg		[LOG_DEPTH-1:0]			data_num;
 reg		[LOG_DEPTH-1:0]			current;
 
+reg		[1:0]					address_pipeline;
+
 reg		[1:0]					ready_reg;
 
 
@@ -56,6 +58,9 @@ assign writeonly = ~(ss_ready && ss_valid) && (ms_ready && ms_valid);
 assign ms_valid = ready_reg[1];
 
 
+always @(posedge clk) begin
+	
+end
 
 always @(posedge clk) begin
 	if(~resetn) begin
