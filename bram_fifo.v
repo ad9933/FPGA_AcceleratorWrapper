@@ -22,8 +22,6 @@ reg		[LOG_DEPTH-1:0]			current;
 
 reg 	[LOG_DEPTH-1:0]			address_pipeline;
 
-reg		[1:0]					ready_reg;
-
 
 //BRAM instance
 dp_bram BRAM (
@@ -41,7 +39,7 @@ dp_bram BRAM (
 );
 
 always @(*) begin
-	ss_ready = (data_num != 511) ? 1 : 0;
+	ss_ready = ((data_num != 511) && resetn) ? 1 : 0;
 	
 end
 
@@ -53,7 +51,7 @@ wire readonly;
 
 assign writeonly = (ss_ready && ss_valid) && ~(ms_ready && ms_valid);
 assign readandwrite = (ss_ready && ss_valid) && (ms_ready && ms_valid);
-assign writeonly = ~(ss_ready && ss_valid) && (ms_ready && ms_valid);
+assign readonly = ~(ss_ready && ss_valid) && (ms_ready && ms_valid);
 
 
 always @(posedge clk) begin
