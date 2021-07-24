@@ -18,9 +18,12 @@ module bram_fifo #(
 );
 
 reg		[LOG_DEPTH-1:0]			data_num;
+reg 	[LOG_DEPTH-1:0]			data_num_delay;
+
 reg		[LOG_DEPTH-1:0]			current;
 
 reg 	[LOG_DEPTH-1:0]			address_pipeline;
+
 
 
 //BRAM instance
@@ -54,13 +57,14 @@ assign readandwrite = (ss_ready && ss_valid) && (ms_ready && ms_valid);
 assign readonly = ~(ss_ready && ss_valid) && (ms_ready && ms_valid);
 
 
+
 always @(posedge clk) begin
 	if(~resetn) begin
 		ms_valid <= 0;
 
 	end
 	else begin
-		ms_valid <= data_num != 0;
+		ms_valid <= (ms_valid && ms_ready) ? (data_num_delay - 1 != 0) : (data_num_delay != 0);
 	end
 	
 end
@@ -92,6 +96,16 @@ always @(posedge clk) begin
 	end
 end
 
+
+
+always @(posedge clk) begin
+	if(~resetn) begin
+		data_num_delay <= 0;
+	end
+	else begin
+		data_num_delay <= data_num;
+	end
+end
 
 
 endmodule
