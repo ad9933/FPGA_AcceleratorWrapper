@@ -18,7 +18,6 @@ module bram_fifo #(
 );
 
 reg		[LOG_DEPTH-1:0]			data_num;
-reg 	[LOG_DEPTH-1:0]			data_num_delay;
 
 reg		[LOG_DEPTH-1:0]			current;
 
@@ -64,13 +63,14 @@ always @(posedge clk) begin
 
 	end
 	else begin
-		ms_valid <= (ms_valid && ms_ready) ? (data_num_delay - 1 != 0) : (data_num_delay != 0);
+		ms_valid <= (ms_valid && ms_ready) ? (data_num - 1 != 0) : (data_num != 0);
 	end
 	
 end
 
 always @(posedge clk) begin
-	address_pipeline <= current - data_num;
+	if(ms_ready && ms_valid)
+		address_pipeline <= address_pipeline + 1;
 end
 
 
@@ -93,17 +93,6 @@ always @(posedge clk) begin
 		end
 
 
-	end
-end
-
-
-
-always @(posedge clk) begin
-	if(~resetn) begin
-		data_num_delay <= 0;
-	end
-	else begin
-		data_num_delay <= data_num;
 	end
 end
 
