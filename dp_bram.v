@@ -4,18 +4,20 @@ module dp_bram #(
 	parameter LOG_DEPTH = 9
 )
 (
-	input				clk,
+	input						clk,
 	
 	input		[8:0]			addr1,
 	output	reg	[WIDTH-1:0]		rdata1,
 	input		[WIDTH-1:0]		wdata1,
-	input				write_en1,
+	input						write_en1,
+	input						output_en1,
 
 
 	input		[8:0]			addr2,
 	input		[WIDTH-1:0]		wdata2,
 	output	reg	[WIDTH-1:0]		rdata2,
-	input				write_en2
+	input						write_en2,
+	input						output_en2
 );
 
 (* ram_style = "block" *)
@@ -26,7 +28,7 @@ always @(posedge clk) begin
 	if(write_en1)
 		bram[addr1] <= wdata1;
 	else
-		rdata1		<= bram[addr1];
+		rdata1		<= output_en1 ? bram[addr1] : rdata1;
 end
 
 
@@ -34,7 +36,7 @@ always @(posedge clk) begin
 	if(write_en2)
 		bram[addr2] <= wdata2;
 	else
-		rdata2		<= bram[addr2];
+		rdata2		<= output_en2 ? bram[addr2] : rdata2;
 
 end
 
