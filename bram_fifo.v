@@ -24,8 +24,6 @@ reg		[LOG_DEPTH-1:0]			write_addr;
 reg 	[LOG_DEPTH-1:0]			read_addr;
 
 
-
-
 //BRAM instance
 dp_bram BRAM (
 	.clk(clk),
@@ -40,7 +38,7 @@ dp_bram BRAM (
 	.rdata2(ms_data),
 	.wdata2(),
 	.write_en2(1'b0),
-	.output_en2(ss_ready && ss_valid)
+	.output_en2(ms_ready && (write_addr != read_addr))
 );
 
 always @(*) begin
@@ -51,8 +49,13 @@ end
 
 //Read address counter
 always @(posedge clk) begin
-	if(ms_valid && ms_ready)
-		read_addr <= read_addr + 1;
+	if(~resetn) begin
+		read_addr <= 0;
+	end
+	else begin
+		if(ms_ready && (write_addr != read_addr))
+			read_addr <= read_addr + 1;
+	end		
 end
 
 
@@ -91,7 +94,16 @@ end
 
 //Valid control
 always @(posedge clk) begin
-	ms_valid <= (write_addr == read_addr) ? 0 : 1;
+	if(~resetn) begin
+		ms_valid <= 0;
+	end
+	else begin
+		if(ms_ready && (write_addr != read_addr) || (ms_ready && ms_valid))
+			ms_valid <= (write_addr == read_addr) ? 0 : 1;
+	end
+	
 end
+
+
 
 endmodule
