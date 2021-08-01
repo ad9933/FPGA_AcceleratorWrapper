@@ -270,8 +270,11 @@ module dma_module #(
 	
 	//Set write address
 	always @(posedge m_axi_acp_aclk) begin
-		if( (wdata_count == 0) || write_active )
-			m_axi_acp_awaddr <= (write_active) ? write_address : m_axi_acp_awaddr + {wdata_count, 3'b000};
+		if(write_active)
+			m_axi_acp_awaddr <= write_address;
+		else if(m_axi_acp_awvalid && m_axi_acp_awready)
+			m_axi_acp_awaddr <= m_axi_acp_awaddr + {wdata_count, 3'b000};
+	
 	end
 
 	//Valid signal control
@@ -279,8 +282,11 @@ module dma_module #(
 		if(~axi_resetn) begin
 			m_axi_acp_awvalid <= 0;
 		end
+		else if(m_axi_acp_awvalid && m_axi_acp_awready) begin
+			m_axi_acp_awvalid <= 0;
+		end
 		else begin
-			m_axi_acp_awvalid <= ~wdata_ch_active && ((wdata_count == 0) || write_active) && ~write_idle;
+			m_axi_acp_awvalid <= ~wdata_ch_active && ((wdata_count[3:0] == 0) || write_active) && ~write_idle;
 		end
 		
 	end
@@ -290,8 +296,10 @@ module dma_module #(
 		if(~axi_resetn) begin
 			wdata_ch_active <= 0;
 		end
-		else begin															//??? grammar warning
-			wdata_ch_active <= (m_axi_acp_awvalid && m_axi_acp_awready) && (wdata_count[3:0] == 4'b1111) && ~(wdata_count[DATA_SIZE_LOG-1:4] == BURST_NUM );
+		else begin
+			if(m_axi_acp_awvalid && m_axi_acp_awready  ||  wdata_count[3:0] == 4'b1111) begin
+				wdata_ch_active <= (wdata_count[3:0] == 4'b1111) ? 0 : 1;
+			end
 		end
 		
 	end
@@ -302,7 +310,11 @@ module dma_module #(
 			write_idle <= 1;
 		end
 		else begin
-			write_idle <= ((~write_active) && (~wdata_ch_active)) || (wdata_count[DATA_SIZE_LOG-1:4] == BURST_NUM );
+			if(wdata_count[DATA_SIZE_LOG-1:4] == BURST_NUM)
+				write_idle <= (wdata_count[DATA_SIZE_LOG-1:4] == BURST_NUM) ? 1 : 0;
+			else if(write_active)
+				write_idle <= 0;
+			
 		end
 	end
 
