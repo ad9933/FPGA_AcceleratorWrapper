@@ -14,6 +14,7 @@ module dma_module #(
 	
 )
 (
+	
 	///////////////////////////
 	//Control signals
 	///////////////////////////
@@ -125,7 +126,6 @@ module dma_module #(
 	
 );
 
-
 	//Number of transaction need to get data
 	localparam TRANS_NUM = DATA_SIZE / BURST_SIZE ;
 	
@@ -137,6 +137,9 @@ module dma_module #(
 	
 	//Fixed burst size
 	assign m_axi_acp_arlen = BURST_SIZE - 1;
+	
+	//2 bytes per transfer
+	assign m_axi_acp_arsize = 3'b011;
 	
 	//INCR type burst
 	assign m_axi_acp_arburst = 2'b01;
@@ -151,16 +154,16 @@ module dma_module #(
 	assign m_axi_acp_awcache = 4'b0001;
 	
 	//Protection(last bit ignored by zynq)
-	assign m_axi_acp_arprot = 3'b01x;
-	assign m_axi_acp_awprot = 3'b01x;
+	assign m_axi_acp_arprot = 3'b010;
+	assign m_axi_acp_awprot = 3'b010;
 
 	//Does not participate in qos scheme
 	assign m_axi_acp_arqos = 4'b0000;
 	assign m_axi_acp_awqos = 4'b0000;
 
 	//Does not use user signals
-	assign m_axi_acp_aruser = 5'bxxxxx;
-	assign m_axi_acp_awuser = 5'bxxxxx;
+	assign m_axi_acp_aruser = 5'b00000;
+	assign m_axi_acp_awuser = 5'b00000;
 	
 
 	////////////////////////////////////
@@ -189,8 +192,11 @@ module dma_module #(
 	
 	//Set read address
 	always @(posedge m_axi_acp_aclk) begin
-		if( (rdata_count == 0) || read_active )
-			m_axi_acp_araddr <= (read_active) ? read_address : m_axi_acp_araddr + {rdata_count, 3'b000};
+		if(read_active)
+			m_axi_acp_araddr <= read_address;
+		else if(m_axi_acp_arvalid && m_axi_acp_arready)
+			m_axi_acp_araddr <= m_axi_acp_araddr + {rdata_count, 3'b000};
+	
 	end
 	
 	//Valid signal control
@@ -198,8 +204,11 @@ module dma_module #(
 		if(~axi_resetn) begin
 			m_axi_acp_arvalid <= 0;
 		end
+		else if(m_axi_acp_arvalid && m_axi_acp_arready) begin
+			m_axi_acp_arvalid <= 0;
+		end
 		else begin
-			m_axi_acp_arvalid <= ~rdata_ch_active && (rdata_count == 0) || read_active;
+			m_axi_acp_arvalid <= ~rdata_ch_active && ((rdata_count[3:0] == 0) || read_active) && ~read_idle;
 		end
 		
 	end
@@ -209,8 +218,10 @@ module dma_module #(
 		if(~axi_resetn) begin
 			rdata_ch_active <= 0;
 		end
-		else begin															//??? grammar warning
-			rdata_ch_active <= (m_axi_acp_arvalid && m_axi_acp_arready) && (rdata_count[3:0] == 4'b1111) && ~(rdata_count[DATA_SIZE_LOG-1:4] == BURST_NUM );
+		else begin
+			if(m_axi_acp_arvalid && m_axi_acp_arready  ||  rdata_count[3:0] == 4'b1111) begin
+				rdata_ch_active <= (rdata_count[3:0] == 4'b1111) ? 0 : 1;
+			end
 		end
 		
 	end
@@ -218,10 +229,14 @@ module dma_module #(
 	//Idle signal control
 	always @(posedge m_axi_acp_aclk) begin
 		if(~axi_resetn) begin
-			read_idle <= 0;
+			read_idle <= 1;
 		end
 		else begin
-			read_idle <= ((~read_active) && (~rdata_ch_active)) || (rdata_count[DATA_SIZE_LOG-1:4] == BURST_NUM );
+			if(rdata_count[DATA_SIZE_LOG-1:4] == BURST_NUM)
+				read_idle <= (rdata_count[DATA_SIZE_LOG-1:4] == BURST_NUM) ? 1 : 0;
+			else if(read_active)
+				read_idle <= 0;
+			
 		end
 	end
 
@@ -265,7 +280,7 @@ module dma_module #(
 			m_axi_acp_awvalid <= 0;
 		end
 		else begin
-			m_axi_acp_awvalid <= ~wdata_ch_active && (wdata_count == 0) || write_active;
+			m_axi_acp_awvalid <= ~wdata_ch_active && ((wdata_count == 0) || write_active) && ~write_idle;
 		end
 		
 	end
@@ -284,7 +299,7 @@ module dma_module #(
 	//Idle signal control
 	always @(posedge m_axi_acp_aclk) begin
 		if(~axi_resetn) begin
-			write_idle <= 0;
+			write_idle <= 1;
 		end
 		else begin
 			write_idle <= ((~write_active) && (~wdata_ch_active)) || (wdata_count[DATA_SIZE_LOG-1:4] == BURST_NUM );
