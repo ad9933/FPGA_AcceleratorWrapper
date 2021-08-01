@@ -6,10 +6,10 @@ module dma_module #(
 	parameter DATA_SIZE_LOG = 19,
 	
 	//Burst per transaction
-	parameter BURST_SIZE = 16
+	parameter BURST_SIZE = 16,
 	
 	//Number of burst needed
-	parameter BURST_NUM = DATA_SIZE / BURST_SIZE;
+	parameter BURST_NUM = DATA_SIZE / BURST_SIZE
 	
 	
 )
@@ -111,7 +111,7 @@ module dma_module #(
 	//Stream Interface (Output)
 	////////////////////////////////////
 	
-	output	reg	[63:0]	mm2s_data,
+	output		[63:0]	mm2s_data,
 	output				mm2s_valid,
 	input				mm2s_ready,
 	
@@ -129,9 +129,6 @@ module dma_module #(
 	//Number of transaction need to get data
 	localparam TRANS_NUM = DATA_SIZE / BURST_SIZE ;
 	
-	
-	//Pass ready signal to AXI 3 interface
-	assign m_axi_acp_rready = mm2s_ready;
 
 	//Fixed transaction ID
 	assign m_axi_acp_arid = 3'b100;
@@ -165,8 +162,6 @@ module dma_module #(
 	assign m_axi_acp_aruser = 5'bxxxxx;
 	assign m_axi_acp_awuser = 5'bxxxxx;
 	
-	//Response concat
-	assign rw_resp = {m_axi_acp_rresp, bresp};
 
 	////////////////////////////////////
 	//Register assignment
@@ -182,6 +177,10 @@ module dma_module #(
 
 	//Write response channel
 	reg [1:0]						bresp;
+	
+	
+	//Response concat
+	assign rw_resp = {m_axi_acp_rresp, bresp};
 
 	
 	////////////////////////////////////
@@ -191,7 +190,7 @@ module dma_module #(
 	//Set read address
 	always @(posedge m_axi_acp_aclk) begin
 		if( (rdata_count == 0) || read_active )
-			m_axi_acp_araddr <= (read_active) ? read_addr : m_axi_acp_araddr + {rdata_count, 3'b000};
+			m_axi_acp_araddr <= (read_active) ? read_address : m_axi_acp_araddr + {rdata_count, 3'b000};
 	end
 	
 	//Valid signal control
@@ -228,7 +227,7 @@ module dma_module #(
 
 	//Data counter
 	always @(posedge m_axi_acp_aclk) begin
-		if(~axi_resetn) begin
+		if(~axi_resetn) begin 
 			rdata_count <= 0;
 		end
 		else begin
@@ -257,7 +256,7 @@ module dma_module #(
 	//Set write address
 	always @(posedge m_axi_acp_aclk) begin
 		if( (wdata_count == 0) || write_active )
-			m_axi_acp_awaddr <= (write_active) ? write_addr : m_axi_acp_awaddr + {wdata_count, 3'b000};
+			m_axi_acp_awaddr <= (write_active) ? write_address : m_axi_acp_awaddr + {wdata_count, 3'b000};
 	end
 
 	//Valid signal control
