@@ -91,7 +91,7 @@ module dma_module #(
 	output		[2:0]		m_axi_acp_wid,
 	output		[63:0]		m_axi_acp_wdata,
 	output		[7:0]		m_axi_acp_wstrb,
-	output					m_axi_acp_wlast,
+	output	reg				m_axi_acp_wlast,
 	output		[4:0]		m_axi_acp_wuser,
 	output					m_axi_acp_wvalid,
 	input					m_axi_acp_wready,
@@ -137,9 +137,12 @@ module dma_module #(
 	
 	//Fixed burst size
 	assign m_axi_acp_arlen = BURST_SIZE - 1;
+	assign m_axi_acp_awlen = BURST_SIZE - 1;
 	
 	//2 bytes per transfer
 	assign m_axi_acp_arsize = 3'b011;
+	assign m_axi_acp_awsize = 3'b011;
+	assign m_axi_acp_wstrb = 8'b1111_1111;
 	
 	//INCR type burst
 	assign m_axi_acp_arburst = 2'b01;
@@ -165,6 +168,7 @@ module dma_module #(
 	assign m_axi_acp_aruser = 5'b00000;
 	assign m_axi_acp_awuser = 5'b00000;
 	
+	
 
 	////////////////////////////////////
 	//Register assignment
@@ -185,7 +189,6 @@ module dma_module #(
 	//Response concat
 	assign rw_resp = {m_axi_acp_rresp, bresp};
 
-	
 	////////////////////////////////////
 	//Read address channel
 	////////////////////////////////////
@@ -195,7 +198,7 @@ module dma_module #(
 		if(read_active)
 			m_axi_acp_araddr <= read_address;
 		else if(m_axi_acp_arvalid && m_axi_acp_arready)
-			m_axi_acp_araddr <= m_axi_acp_araddr + {rdata_count, 3'b000};
+			m_axi_acp_araddr <= m_axi_acp_araddr + 32'h400;
 	
 	end
 	
@@ -273,7 +276,7 @@ module dma_module #(
 		if(write_active)
 			m_axi_acp_awaddr <= write_address;
 		else if(m_axi_acp_awvalid && m_axi_acp_awready)
-			m_axi_acp_awaddr <= m_axi_acp_awaddr + {wdata_count, 3'b000};
+			m_axi_acp_awaddr <= m_axi_acp_awaddr + 32'h400;
 	
 	end
 
@@ -297,7 +300,10 @@ module dma_module #(
 			wdata_ch_active <= 0;
 		end
 		else begin
-			if(m_axi_acp_awvalid && m_axi_acp_awready  ||  wdata_count[3:0] == 4'b1111) begin
+			if(m_axi_acp_awvalid && m_axi_acp_awready) begin
+				wdata_ch_active <= 1;
+			end
+			else if(m_axi_acp_wvalid && m_axi_acp_wready) begin
 				wdata_ch_active <= (wdata_count[3:0] == 4'b1111) ? 0 : 1;
 			end
 		end
@@ -315,6 +321,17 @@ module dma_module #(
 			else if(write_active)
 				write_idle <= 0;
 			
+		end
+	end
+
+	//wlast signal
+	always @(posedge m_axi_acp_aclk) begin
+		if(~axi_resetn) begin
+			m_axi_acp_wlast <= 0;
+		end
+		else begin
+			if(m_axi_acp_wvalid && m_axi_acp_wready)
+				m_axi_acp_wlast <= (wdata_count[3:0] == 14) ? 1 : 0;
 		end
 	end
 
