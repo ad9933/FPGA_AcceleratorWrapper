@@ -177,10 +177,12 @@ module dma_module #(
 	//Read address channel
 	reg	[DATA_SIZE_LOG-1:0]			rdata_count;
 	reg 							rdata_ch_active;
+	reg	[4:0]						rdata_addr_count;
 
 	//Write address channel
 	reg	[DATA_SIZE_LOG-1:0]			wdata_count;
 	reg 							wdata_ch_active;
+	reg	[9:0]						wdata_addr_count;
 
 	//Write response channel
 	reg [1:0]						bresp;
@@ -198,8 +200,23 @@ module dma_module #(
 		if(read_active)
 			m_axi_acp_araddr <= read_address;
 		else if(m_axi_acp_arvalid && m_axi_acp_arready)
-			m_axi_acp_araddr <= m_axi_acp_araddr + 32'h400;
+			m_axi_acp_araddr <= m_axi_acp_araddr + 32'h80;
 	
+	end
+	
+	//Read address counter
+	always @(posedge m_axi_acp_aclk) begin
+		if(~axi_resetn) begin
+			rdata_addr_count <= 0;
+		end
+		else begin
+			if(m_axi_acp_arvalid && m_axi_acp_arready) begin
+				rdata_addr_count <= (m_axi_acp_rready && m_axi_acp_rvalid && m_axi_acp_rlast) ? rdata_addr_count : rdata_addr_count + 1;
+			end
+			else if (m_axi_acp_rready && m_axi_acp_rvalid && m_axi_acp_rlast) begin
+				rdata_addr_count <= rdata_addr_count -1;
+			end
+		end
 	end
 	
 	//Valid signal control
@@ -207,11 +224,14 @@ module dma_module #(
 		if(~axi_resetn) begin
 			m_axi_acp_arvalid <= 0;
 		end
-		else if(m_axi_acp_arvalid && m_axi_acp_arready) begin
-			m_axi_acp_arvalid <= 0;
-		end
 		else begin
-			m_axi_acp_arvalid <= ~rdata_ch_active && ((rdata_count[3:0] == 0) || read_active) && ~read_idle;
+			if(rdata_addr_count == 31 || rdata_count[DATA_SIZE_LOG-1:4] + rdata_addr_count  == (DATA_SIZE/16)) begin
+				m_axi_acp_arvalid <= 0;
+			end
+			else begin
+				m_axi_acp_arvalid <= ~read_idle;
+			end
+			
 		end
 		
 	end
@@ -222,9 +242,8 @@ module dma_module #(
 			rdata_ch_active <= 0;
 		end
 		else begin
-			if(m_axi_acp_arvalid && m_axi_acp_arready  ||  rdata_count[3:0] == 4'b1111) begin
-				rdata_ch_active <= (rdata_count[3:0] == 4'b1111) ? 0 : 1;
-			end
+			rdata_ch_active <= (rdata_addr_count != 0) ? 1 : 0;
+			
 		end
 		
 	end

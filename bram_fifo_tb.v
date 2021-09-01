@@ -48,11 +48,5 @@ module bram_fifo_tb ();
 			#1 ss_data = ss_data + 1;
 		end
 	end
-	
-	always @(posedge clk) begin
-		if(ms_valid && ms_ready) begin
-			$display("[*]Output : %d", ms_data);
-		end
-	end
 
 endmodule
