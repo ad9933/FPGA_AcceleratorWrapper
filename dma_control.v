@@ -1,4 +1,4 @@
-module axi_dma_impl_ex (
+module dma_control (
     //Global Signals
 	input m_axi_aclk,
 	input s_axi_lite_aclk,
@@ -15,7 +15,7 @@ module axi_dma_impl_ex (
     output [31:0] write_address,
     input write_idle,
 
-    input rw_resp,
+    input [3:0] rw_resp,
 
     ////////////////////////////////////
 	//AXI Lite
@@ -49,7 +49,7 @@ module axi_dma_impl_ex (
 	//0 -> Target address
     //1 -> Command[31:16] / Status[15:0]
     //Command(Write only) - R/W [31], assert [30]
-    //Status(Read only) - Read busy [15], write busy[14] 
+    //Status(Read only) - Read idle [15], write idle [14], r/w response [13:10]
     localparam READ = 1'b0;
     localparam WRITE = 1'b1;
 
@@ -64,6 +64,21 @@ module axi_dma_impl_ex (
     reg read_addr_buffer;
 	reg has_read_addr;
 	
+	//DMA control signal settings
+	assign read_address = data_reg[0];
+	assign write_address = data_reg[0];
+
+						// R/W select               //assert
+	assign read_active = (data_reg[1][31]) ? 1'b0 : (data_reg[1][30]);
+	assign write_active = (data_reg[1][31]) ? (data_reg[1][30]) : 1'b0;
+
+	always @(*) begin
+		//Read idle and Write idle
+		data_reg[1][15:14] = {read_idle, write_idle};
+		data_reg[1][13:10] = rw_resp;
+	end
+
+
 	//Get Write Address
 	assign s_axi_lite_awready = ~has_write_addr;
 	always @(posedge s_axi_lite_aclk) begin
@@ -86,7 +101,7 @@ module axi_dma_impl_ex (
 	end
 	
 	//Get Data to Write
-	assign s_axi_lite_wready = has_write_addr;
+	assign s_axi_lite_wready = has_write_addr && ~data_reg[1][30];
 	always @(posedge s_axi_lite_aclk) begin
 		if(s_axi_lite_wready & s_axi_lite_wvalid) begin
             if(write_addr_buffer)
@@ -94,6 +109,8 @@ module axi_dma_impl_ex (
             else
                 data_reg[write_addr_buffer][31:16] <= s_axi_lite_wdata[31:16];
 		end
+		else
+			data_reg[1][30] <= 1'b0;
 	end
 	
 	//Send Write response
