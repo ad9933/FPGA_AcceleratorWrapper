@@ -20,10 +20,10 @@ module dma_module #(
 	///////////////////////////
 
 	//Read channel control
-	input					read_active,
+	input					read_active,	//Active the DMA operation - assert to 1 for one clock.
 	input		[31:0]		read_address,
-
-	output	reg				read_idle,
+	output	reg				read_idle,		//Goes to 0 after receiving read_active signal.
+											//Goes back to 1 when DMA operation is completed.
 
 
 	//Write channel control
